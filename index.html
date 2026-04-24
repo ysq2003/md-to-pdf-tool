@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Markdown 工程文档生成器</title>
+
+<!-- marked -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+<!-- marked-katex -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked-katex-extension/lib/index.umd.js"></script>
+
+<!-- highlight.js -->
+<link href="https://cdn.jsdelivr.net/npm/highlight.js/styles/github.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/highlight.js/lib/highlight.min.js"></script>
+
+<style>
+body {
+  margin: 0;
+  display: flex;
+  height: 100vh;
+  font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+}
+
+#editor {
+  width: 50%;
+  padding: 12px;
+  border: none;
+  outline: none;
+  font-size: 14px;
+}
+
+#preview {
+  width: 50%;
+  padding: 24px;
+  overflow-y: auto;
+  background: #fff;
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+/* 工具栏 */
+.toolbar {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 1000;
+}
+
+button {
+  padding: 8px 12px;
+  margin-right: 10px;
+  cursor: pointer;
+}
+
+/* A4 */
+@page {
+  size: A4;
+  margin: 20mm 15mm;
+}
+
+/* 标题层级 */
+h1 { font-size: 24px; border-bottom: 1px solid #ddd; padding-bottom: 6px; }
+h2 { font-size: 20px; margin-top: 20px; }
+
+/* 表格 */
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+th, td {
+  border: 1px solid #ddd;
+  padding: 6px 8px;
+}
+
+/* 代码块 */
+pre {
+  background: #f6f8fa;
+  padding: 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+/* 分页 */
+.page-break {
+  page-break-before: always;
+}
+
+/* 打印优化 */
+@media print {
+  body { display: block; }
+
+  #editor, .toolbar {
+    display: none;
+  }
+
+  #preview {
+    width: 100%;
+    padding: 0;
+  }
+
+  pre, table {
+    page-break-inside: avoid;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="toolbar">
+  <button onclick="exportPDF()">导出 PDF</button>
+  <button onclick="importMD()">导入 MD</button>
+  <input type="file" id="fileInput" accept=".md" hidden>
+</div>
+
+<textarea id="editor"></textarea>
+<div id="preview"></div>
+
+<script>
+// ✅ 工程级：marked + katex 插件
+marked.use(markedKatex({
+  throwOnError: false,
+  output: "html"
+}));
+
+marked.setOptions({
+  breaks: true,
+  highlight: function(code) {
+    return hljs.highlightAuto(code).value;
+  }
+});
+
+// 渲染
+function render() {
+  const md = document.getElementById('editor').value;
+  document.getElementById('preview').innerHTML = marked.parse(md);
+
+  // 高亮
+  document.querySelectorAll('pre code').forEach((block) => {
+    hljs.highlightElement(block);
+  });
+}
+
+// 导出
+function exportPDF() {
+  window.print();
+}
+
+// 导入
+function importMD() {
+  document.getElementById('fileInput').click();
+}
+
+document.getElementById('fileInput').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('editor').value = e.target.result;
+    render();
+  };
+  reader.readAsText(file);
+});
+
+// 实时渲染
+document.getElementById('editor').addEventListener('input', render);
+
+// 默认内容（工程示例）
+document.getElementById('editor').value = `
+# 三相异步电机常用计算公式手册
+
+## 1 功率与转矩
+
+$$
+P = \\frac{T \\times n}{9550}
+$$
+
+$$
+T = \\frac{9550P}{n}
+$$
+
+## 2 转速公式
+
+同步转速：
+
+$$
+n_0 = \\frac{60f}{p}
+$$
+
+## 代码示例
+
+\`\`\`js
+function motorPower(T, n) {
+  return T * n / 9550;
+}
+\`\`\`
+
+<div class="page-break"></div>
+
+## 第二页
+
+继续内容...
+`;
+
+render();
+</script>
+
+</body>
+</html>
